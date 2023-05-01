@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Page</title>
+<!--?    <link rel="stylesheet" href="../static/css/chat.css">-->
+</head>
+
+<body>
+<h1>Chat Page</h1>
+<p>Welcome, ${username}<span id="username"></span>!</p>
+<form id="send-message-form">
+    <div id="sender-receiver-container">
+        <label class="input-label">Receiver:</label>
+        <input type="text" id="receiver">
+        <label class="input-label">Message:</label>
+        <input type="text" id="message">
+        <input type="submit" value="Send">
+    </div>
+</form>
+<form id="set-sender-form">
+    <div id="actions-container">
+        <label class="input-label">Sender:</label>
+        <input type="text" id="sender">
+        <input type="submit" value="Set Sender" id="set-sender">
+    </div>
+</form>
+<button id="refresh-messages">Refresh Messages</button>
+<a href="/logout">Logout</a>
+<p>Friends: ${friend}</p>
+<p>${chat_messages}</p>
+
+
+<script>
+    document.getElementById('username').textContent = localStorage.getItem('username');
+    localStorage.setItem('public_key', "${public_key}");
+    localStorage.setItem('private_key', "${private_key}");
+
+    const sendMessageForm = document.getElementById('send-message-form');
+    sendMessageForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const receiver = document.getElementById('receiver').value;
+        const message = document.getElementById('message').value;
+
+        if (receiver.trim() === '' || message.trim() === '') {
+            alert('Both Receiver and Message fields must be filled in.');
+            return;
+        }
+
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `receiver=${encodeURIComponent(receiver)}&message=${encodeURIComponent(message)}`,
+        }).then(() => {
+            location.reload();
+        });
+    });
+
+    const setSenderForm = document.getElementById('set-sender-form');
+    setSenderForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const sender = document.getElementById('sender').value;
+
+        if (sender.trim() === '') {
+            alert('The Sender field must be filled in.');
+            return;
+        }
+
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `sender=${encodeURIComponent(sender)}`,
+        }).then(() => {
+            // Clear the 'Sender' input field
+            document.getElementById('sender').value = '';
+        });
+    });
+
+    const refreshMessagesButton = document.getElementById('refresh-messages');
+    refreshMessagesButton.addEventListener('click', () => {
+        location.reload(); // Refresh the page when the button is clicked
+    });
+
+</script>
+</body>
+</html>
