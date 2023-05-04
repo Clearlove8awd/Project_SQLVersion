@@ -9,6 +9,7 @@ import os
 import traceback
 import uuid
 
+import sql
 import view
 import random
 from no_sql_db import database
@@ -62,6 +63,26 @@ def contact_friend(user):
 
 
 # Add friend to user's friend list in database
+'''
+def add_friend(username, friend):
+    
+        add_friend
+        Adds a friend to the user's friend list
+
+        :: username :: The username
+        :: friend :: The friend to add
+    
+    user = database.search_table('users', 'username', username)
+    friend_search = database.search_table('users', 'username', friend)
+    print(user, friend_search)
+    if user and friend_search:
+        # if user[3] do not exist friend, append friend to user[3]
+        if friend_search[1] not in user[3]:
+            user[3].append(friend_search[1])
+        if user[1] not in friend_search[3]:
+            friend_search[3].append(user[1])
+    return
+'''
 def add_friend(username, friend):
     '''
         add_friend
@@ -70,6 +91,34 @@ def add_friend(username, friend):
         :: username :: The username
         :: friend :: The friend to add
     '''
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+
+    user_row = sql_db.get_user(username)
+    if user_row == None:
+        return None
+    friend_row = sql_db.get_user(friend)
+    if friend_row == None:
+        return None
+
+    id_1 = user_row[0]
+    id_2 = friend_row[0]
+    if id_1==id_2:
+        print("You cannot add yourself to friend")
+        return None
+    elif id_1>id_2:
+        tem = id_1
+        id_1 = id_2
+        id_2 = tem
+
+    if sql_db.get_targetfriend(id_1,id_2)!=None:
+        print("The friend has been in the friend list")
+        return
+    sql_db.add_friend(id_1,id_2)
+        
+
+
+
     user = database.search_table('users', 'username', username)
     friend_search = database.search_table('users', 'username', friend)
     print(user, friend_search)
@@ -81,7 +130,6 @@ def add_friend(username, friend):
             friend_search[3].append(user[1])
     return
 
-
 # Get user's friend list from database
 def get_friends(username):
     '''
@@ -91,6 +139,8 @@ def get_friends(username):
         :: username :: The username
 
         Returns a list of friends
+    '''
+
     '''
     friends = ""
     # get the friends from the database
@@ -105,7 +155,41 @@ def get_friends(username):
                 friends = friend
     # print(friends)
     return friends
+    '''
 
+    friends = ""
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+    result = sql_db.get_user(username)
+    if result== None:
+        print("No such user")
+        return friends
+    id = result[0]
+    friend_list = sql_db.get_friends(id)
+    if friend_list==None:
+        return friends
+    if friend_list == []:
+        return friends
+    count=0
+    for row in friend_list:
+        if (row[0] == id):
+            friend_id = row[1]
+        else:
+            friend_id = row[0]
+        user_row = sql_db.get_user_by_id(friend_id)
+        if count == 0:
+            friends = friends + user_row[1]
+        else:
+            friends = friends + "," + user_row[1]
+        count+=1
+    return friends
+
+
+
+
+
+
+'''
 
 def login_check(username, password):
     users = database.search_table('users', 'username', username)
@@ -120,6 +204,23 @@ def login_check(username, password):
     else:
         return page_view("invalid", reason="User does not exist")
 
+'''
+def login_check(username, password):
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+
+    row = sql_db.get_user(username)
+
+    if row != None:
+        hashed_password = bytes.fromhex(row[2])
+
+        if bcrypt.checkpw(password.encode('utf-8'), hashed_password):
+            response.set_cookie("username", username)
+            return page_view("valid", name=username)
+        else:
+            return page_view("invalid", reason="Wrong password")
+    else:
+        return page_view("invalid", reason="User does not exist")
 
 # -----------------------------------------------------------------------------
 # About
@@ -135,7 +236,12 @@ def about():
 
 def register_user(username, password):
     # Check if the username already exists
-    if database.search_table('users', 'username', username):
+
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+    row = sql_db.get_user(username)
+
+    if row != None:
         return page_view("register", error="Username already exists")
 
     # Hash and salt the password
@@ -144,12 +250,12 @@ def register_user(username, password):
 
     # Generate the public and private keys
     publicKey, privateKey = generate_keys()
-    user_id = len(database.tables['users'].entries) + 1
 
     # Add the user to the database with their public and private keys
-    database.create_table_entry('users', [user_id, username, hashed_password, [], publicKey, privateKey])
+    #database.create_table_entry('users', [user_id, username, hashed_password, [], publicKey, privateKey])
+    sql_db.add_user(username, hashed_password, publicKey, privateKey)
 
-    print(database.search_table("users", "username", username))
+    #print(database.search_table("users", "username", username))
 
     # Redirect the user to the login page with a success message
     return page_view("login", message="Registration successful. Please log in.")
@@ -162,10 +268,13 @@ def register_form():
     '''
     return page_view("register")
 
-
+'''
 def get_user(username):
-    user = database.get_user('users', username)
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+    user = sql_db.get_user(username)
     return user
+    '''
 
 
 # -----------------------------------------------------------------------------
@@ -174,55 +283,87 @@ def get_user(username):
 
 
 def send_message(username, user_to, message, timestamp):
+
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+
+    '''
     if not database.search_table('users', 'username', user_to):
         return page_view("chat", error_msg="Receiver does not exist", chat_messages="b")
     if user_to not in database.search_table("users", "username", username)[3]:
         # Return an error message if the receiver is not a friend
         return page_view("chat", error_msg="You are not friends with this user.", chat_messages="c")
+        '''
+    curuser_row = sql_db.get_user(username)
+    user_to_row = sql_db.get_user(user_to)
 
+    if curuser_row == None:
+        print("Sender does not exist")
+        return
+    if user_to_row == None:
+        print("Receiver does not exist")
+        return page_view("chat", error_msg="Receiver does not exist", chat_messages="b")
+    if sql_db.get_targetfriend(curuser_row[0], user_to_row[0]) == None:
+        # Return an error message if the receiver is not a friend
+        #print(type(curuser_row[0]))
+        print("You are not friends with this user.")
+        return page_view("chat", error_msg="You are not friends with this user.", chat_messages="c")
+
+
+    '''
     # Get the user's public and private keys
     sender_public_key = database.search_table("users", "username", username)[4]
     sender_private_key = database.search_table("users", "username", username)[5]
     # Get the receiver's public and private keys
     receiver_public_key = database.search_table("users", "username", user_to)[4]
     receiver_private_key = database.search_table("users", "username", user_to)[5]
+    '''
+
+    sender_public_key = sql_db.search_table("Users", "username", username)[3]
+    sender_private_key = sql_db.search_table("Users", "username", username)[4]
+    receiver_public_key = sql_db.search_table("Users", "username", user_to)[3]
+    receiver_private_key = sql_db.search_table("Users", "username", user_to)[4]
 
     # Get the messages between the two users
-
-    message_id = len(database.tables['messages'].entries) + 1
+    #message_id = len(database.tables['messages'].entries) + 1
 
     signature = create_signature(message, sender_private_key)
     encoded_message = encrypt_message(message, receiver_public_key)
+    encoded_message_hex = encoded_message.hex()
 
+    '''
     if database.search_table("messages", "sender", username):
         database.search_table("messages", "sender", username)[3].append([encoded_message, signature, timestamp])
     else:
         database.create_table_entry('messages',
                                     [message_id, username, user_to, [[encoded_message, signature, timestamp]]])
     print(database.search_table("messages", "sender", username), database.search_table("messages", "sender", user_to))
+    '''
+
+    sql_db.add_message(username, user_to, encoded_message_hex, signature, timestamp)
+    #sql_db.conn.close()
 
 
-def get_message(username, user_to):
-    try:
-        # print(username, user_to)
-        print(database.search_table("messages", "sender", username),
-              database.search_table("messages", "sender", user_to))
-        messages_from_sender = database.search_table("messages", "sender", username)[3]
-        # signature_from_sendermessage = database.search_table("messages", "sender", username)[3][1]
-    except Exception:
-        messages_from_sender = []
-        signature_from_sendermessage = None
-        pass
+def get_message(current_user, receiver):
+    '''
+    print(database.search_table("messages", "sender", username),
+          database.search_table("messages", "sender", user_to))
+    messages_from_sender = database.search_table("messages", "sender", username)[3]
+    '''
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+    messages_from_receiver = sql_db.get_allmessages(receiver, current_user)
+    if messages_from_receiver is None:
+        messages_from_receiver = []
 
-    try:
-        messages_from_curuser = database.search_table("messages", "sender", user_to)[3]
-        # signature_from_curuser = database.search_table("messages", "sender", user_to)[3][1]
-    except Exception:
-        messages_from_curuser = []
-        signature_from_curuser = None
+    messages_from_current_user = sql_db.get_allmessages(current_user, receiver)
+    if messages_from_current_user is None:
+        messages_from_current_user = []
 
-    print(messages_from_sender)
-    print(messages_from_curuser)
+    print(messages_from_receiver)
+    print(messages_from_current_user)
+
+    '''
     # Get the user's public and private keys
     sender_public_key = database.search_table("users", "username", username)[4]
     sender_private_key = database.search_table("users", "username", username)[5]
@@ -230,36 +371,42 @@ def get_message(username, user_to):
     # Get the receiver's public and private keys
     receiver_public_key = database.search_table("users", "username", user_to)[4]
     receiver_private_key = database.search_table("users", "username", user_to)[5]
+'''
+    sender_public_key = sql_db.search_table("Users", "username", current_user)[3]
+    sender_private_key = sql_db.search_table("Users", "username", current_user)[4]
+    receiver_public_key = sql_db.search_table("Users", "username", receiver)[3]
+    receiver_private_key = sql_db.search_table("Users", "username", receiver)[4]
+
 
     all_messages = []
+    #sql_db.conn.close()
 
-    if messages_from_sender:
-        for message in messages_from_sender:
 
-            # print(message)
-            decoded_message = decrypt_message(message[0], receiver_private_key)
-            # print(decoded_message)
-            if not verify_signature(decoded_message, message[1], sender_public_key):
-                print("Signature verification failed")
-                return page_view("chat", chat_messages="Signature verification failed")
-            print("Signature verification successful")
-            all_messages.append([decoded_message, message[2],
-                                 database.search_table("messages", "sender", username)[1],
-                                 database.search_table("messages", "sender", username)[2]])
-    if messages_from_curuser:
-        for message in messages_from_curuser:
+    for message in messages_from_receiver:
+        encoded_message = bytes.fromhex(message[3])
+        decoded_message = decrypt_message(encoded_message, sender_private_key)
+        if not verify_signature(decoded_message, message[4], receiver_public_key):
+            print("Signature verification failed")
+            return page_view("chat", chat_messages="Signature verification failed")
+        print("Signature verification successful")
 
-            print(message)
-            decoded_message = decrypt_message(message[0], sender_private_key)
-            print(decoded_message)
-            if not verify_signature(decoded_message, message[1], receiver_public_key):
-                print("Signature verification failed")
-                return page_view("chat", chat_messages="Signature verification failed")
-            print("Signature verification successful")
-            all_messages.append([decoded_message, message[2],
-                                 database.search_table("messages", "sender", user_to)[1],
-                                 database.search_table("messages", "sender", user_to)[2]])
-    # print(all_messages)
+        all_messages.append([decoded_message, message[5], message[1], message[2]])
+        #database.search_table("messages", "sender", username)[1],
+        #database.search_table("messages", "sender", username)[2]]
+
+    for message in messages_from_current_user:
+        encoded_message = bytes.fromhex(message[3])
+        decoded_message = decrypt_message(encoded_message, receiver_private_key)
+        if not verify_signature(decoded_message, message[4], sender_public_key):
+            print("Signature verification failed")
+            return page_view("chat", chat_messages="Signature verification failed")
+        print("Signature verification successful")
+        all_messages.append([decoded_message, message[5], message[1], message[2]])
+        #database.search_table("messages", "sender", user_to)[1],
+        #database.search_table("messages", "sender", user_to)[2]]
+
+    print(all_messages)
+
     sorted_messages = sorted(all_messages, key=lambda x: x[1])
     for i, message in enumerate(sorted_messages):
         sorted_messages[i][1] = datetime.datetime.fromtimestamp(sorted_messages[i][1]).strftime('%Y-%m-%d %H:%M:%S %Z')

@@ -69,8 +69,9 @@ class DB():
         # Setup your tables
 
         self.add_table('users', "id", "username", "password", "friends", "public_key", "private_key")
-        self.add_table('messages', "id", "sender", "receiver", "message")
+        self.add_table("messages", "id", "sender", "receiver", "message")
         return
+
 
     def add_table(self, table_name, *table_fields):
         '''

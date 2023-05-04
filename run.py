@@ -55,25 +55,21 @@ def run_server():
 # Comment out the current manage_db function, and 
 # uncomment the following one to load an SQLite3 database
 
-def manage_db():
-    '''
-        Blank function for database support, use as needed
-    '''
-    pass
 
-"""
 import sql
-    
+
+# Only use when we need to reset the whole database
 def manage_db():
     '''
         manage_db
         Starts up and re-initialises an SQL databse for the server
     '''
-    database_args = ":memory:" # Currently runs in RAM, might want to change this to a file if you use it
-    sql_db = sql.SQLDatabase(database_args=database_args)
-
+    database_args = "UserDatabase.db" # Currently runs in RAM, might want to change this to a file if you use it
+    sql_db = sql.SQLDatabase(database_args)
+    sql_db.user_database_setup()
+    sql_db.conn.close()
     return
-"""
+
 
 #-----------------------------------------------------------------------------
 

@@ -1,5 +1,9 @@
+import time
 
 import rsa
+import model
+import sql
+
 
 def generate_keys():
     publicKey, privateKey = rsa.newkeys(512)
@@ -47,26 +51,57 @@ def receive_secure_message(encrypted_message, signature, sender_public_key_pem, 
     else:
         return "Signature verification failed"
 
+def init():
+    database_args = "UserDatabase.db"  # Currently runs in RAM, might want to change this to a file if you use it
+    sql_db = sql.SQLDatabase(database_args)
+    sql_db.user_database_setup()
+    sql_db.conn.close()
 
+    model.register_user("newUser", "123")
+    model.add_friend("newUser","admin")
+    timestamp = int(time.time())
+    #model.send_message("admin","newUser","A new message for you", timestamp)
+    #model.send_message("newUser","admin","I received", timestamp)
 
-# Generate key pairs for sender and receiver
+def showAllMessage():
+    print("The database info are shown below:")
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
 
-sender_public_key_pem, sender_private_key_pem = generate_keys()
+    query = """
+         SELECT *
+         FROM Users
+     """
+    sql_db.execute(query)
+    print(sql_db.cur.fetchall())
 
-receiver_public_key_pem, receiver_private_key_pem = generate_keys()
+    query = """
+         SELECT *
+         FROM Friends
+     """
+    sql_db.execute(query)
+    print()
+    print(sql_db.cur.fetchall())
 
-# Test the send_secure_message and receive_secure_message functions
-original_message = "Hello, this is a secure message!"
-print("Original message:", original_message)
+    query = """
+         SELECT *
+         FROM Messages
+    """
+    sql_db.execute(query)
+    print()
+    print(sql_db.cur.fetchall())
+    sql_db.conn.close()
 
-encrypted_message, signature = send_secure_message(original_message, sender_private_key_pem, receiver_public_key_pem)
+def testGet():
+    timestamp = int(time.time())
+    model.send_message("admin", "newUser", "A new message for test", timestamp)
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
 
-received_message = receive_secure_message(encrypted_message, signature, sender_public_key_pem, receiver_private_key_pem)
+    model.get_message("admin","newUser")
 
+    sql_db.conn.close()
 
-print("Received message:", received_message)
-
-
-
-
-
+init()
+#testGet()
+#model.get_message("admin","newUser")

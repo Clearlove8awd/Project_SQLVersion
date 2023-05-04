@@ -13,6 +13,8 @@ import model
 import bottle
 from beaker.middleware import SessionMiddleware
 
+import sql
+
 # Configure the session middleware
 session_opts = {
     'session.type': 'file',
@@ -144,6 +146,7 @@ def get_about():
 def get_contact():
     session = bottle.request.environ.get('beaker.session')
     username = session.get('name')
+
     return model.contact_friend(username)
 
 
@@ -232,8 +235,11 @@ def register():
     password = request.forms.get('password')
     model.register_user(username, password)
 
-    user = model.get_user(username)
-    if user:
+    database_args = "UserDatabase.db"
+    sql_db = sql.SQLDatabase(database_args)
+    user = sql_db.get_user(username)
+
+    if user != None:
         print(f"User {username} has been successfully registered!")
     else:
         print(f"User registration failed for {username}!")
