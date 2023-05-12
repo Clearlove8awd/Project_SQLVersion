@@ -56,7 +56,8 @@ class SQLDatabase():
              hashedPassword TEXT,
              public_key VARCHAR(2048),
              private_key VARCHAR(2048),
-             admin INTEGER DEFAULT 0
+             admin INTEGER DEFAULT 0,
+             muted INTEGER DEFAULT 0
          )""")
 
         self.execute("""CREATE TABLE Friends(
@@ -71,6 +72,15 @@ class SQLDatabase():
              receiver TEXT,
              Message VARCHAR(8192),
              Signature TEXT,
+             Timestamp INTEGER
+         )""")
+
+        self.execute("""CREATE TABLE Resources(
+             Id INTEGER PRIMARY KEY AUTOINCREMENT,
+             Title TEXT,
+             Poster TEXT,
+             Description VARCHAR(8192),
+             Link VARCHAR(1024),
              Timestamp INTEGER
          )""")
 
@@ -97,11 +107,64 @@ class SQLDatabase():
         #print(type(hashed_password))
         sql_cmd = """
                  INSERT INTO Users
-                 VALUES(null, '{username}', '{hashedPassword}', '{public_key}', '{private_key}', {admin})
+                 VALUES(null, '{username}', '{hashedPassword}', '{public_key}', '{private_key}', {admin}, 0)
              """.format(username=username, hashedPassword=hashed_password_hex, public_key=publicKey, private_key=privateKey, admin=admin)
 
         self.execute(sql_cmd)
         self.commit()
+
+    def delete_user(self, username):
+        uid = self.get_user(username)[0]
+
+        #Delete user from user list
+        sql_cmd = """
+             DELETE FROM Users
+             WHERE username='{username}'
+             """.format(username=username)
+        self.execute(sql_cmd)
+
+        #Delete relevant friends
+        sql_cmd = """
+             DELETE FROM Friends
+             WHERE Id_1={int_1} OR Id_2={int_2}
+             """.format(int_1=uid, int_2=uid)
+        self.execute(sql_cmd)
+
+        #Delete relevant Messages
+        sql_cmd = """
+             DELETE FROM Messages
+             WHERE sender='{sender}' OR receiver='{receiver}'
+             """.format(sender=username, receiver=username)
+        self.execute(sql_cmd)
+        self.commit()
+
+    # if set_muted is 0, user can speak, if it is 1, it is muted
+    def mute_user(self, username, set_muted: int):
+        sql_cmd = """
+             UPDATE Users
+             SET muted = {set_muted}
+             WHERE username='{username}'
+         """.format(set_muted=set_muted, username=username)
+        self.execute(sql_cmd)
+        self.commit()
+
+    def is_user_muted(self, username):
+        sql_cmd = """
+             SELECT * FROM Users
+             WHERE username='{username}'
+        """.format(username=username)
+
+        self.execute(sql_cmd)
+        result = self.cur.fetchone()
+
+        if result is None:
+            print("Is User Muted: No Such User")
+            return
+        if result[6] == 0:
+            return False
+        else:
+            return True
+
 
     def search_table(self, table_name, target_field_name, target_value):
         '''
@@ -203,42 +266,18 @@ class SQLDatabase():
         result = self.cur.fetchall()
         return result
 
+    def add_resource(self, title, poster_name, description, link, timestamp):
+        query = """
+            INSERT INTO Resources
+            VALUES(null, '{title}', '{poster}', '{description}', '{link}', {timestamp})
+        """.format(title=title, poster=poster_name, description=description, link=link, timestamp=timestamp)
+
+        self.execute(query)
+        self.commit()
+
     # -----------------------------------------------------------------------------
 
     # Check login credentials
-'''
-    def check_credentials(self, username, password):
-
-        query = """
-                SELECT *
-                FROM Users
-                WHERE username = '{username}'
-            """.format(username=username)
-
-        self.cur.execute(query)
-        returnValue = self.cur.fetchone()
-
-        if (returnValue == None):
-            return "NoSuchUserName"
-
-        # Now we got salt, then get the corresponding hashed password
-        passwordByHash = MD5.new((password + salt).encode()).hexdigest()
-
-        # Compare the hashed password with the hashed password in database
-        sql_query = """
-                SELECT *
-                FROM Users
-                WHERE username = '{username}' AND password = '{password}'
-            """
-        sql_query = sql_query.format(username=username, password=passwordByHash)
-        self.cur.execute(sql_query)
-
-        # If our query returns
-        if self.cur.fetchone():
-            return "UserExistAndPasswordCorrect"
-        else:
-            return "PasswordIncorrect"
-'''
 
 
 database_args = "UserDatabase.db"
@@ -249,20 +288,28 @@ query = """
      FROM Users
  """
 sql_db.execute(query)
-#print(sql_db.cur.fetchall())
+print(sql_db.cur.fetchall())
 
 query = """
      SELECT *
      FROM Friends
  """
 sql_db.execute(query)
-print()
-#print(sql_db.cur.fetchall())
+print("Friends:")
+print(sql_db.cur.fetchall())
 
 query = """
      SELECT *
      FROM Messages
 """
 sql_db.execute(query)
-print()
-#print(sql_db.cur.fetchall())
+print("Messages:")
+print(sql_db.cur.fetchall())
+
+query = """
+     SELECT *
+     FROM Resources
+"""
+sql_db.execute(query)
+print("Resources:")
+print(sql_db.cur.fetchall())

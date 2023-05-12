@@ -58,10 +58,11 @@ def init():
     sql_db.conn.close()
 
     model.register_user("newUser", "123")
+    model.register_user("YAHAHA", "123")
     model.add_friend("newUser","admin")
     timestamp = int(time.time())
-    #model.send_message("admin","newUser","A new message for you", timestamp)
-    #model.send_message("newUser","admin","I received", timestamp)
+    model.send_message("admin","newUser","A new message for you", timestamp)
+    model.send_message("newUser","admin","I received", timestamp)
 
 def showAllMessage():
     print("The database info are shown below:")
@@ -92,16 +93,15 @@ def showAllMessage():
     print(sql_db.cur.fetchall())
     sql_db.conn.close()
 
-def testGet():
-    timestamp = int(time.time())
-    model.send_message("admin", "newUser", "A new message for test", timestamp)
+def test():
+
     database_args = "UserDatabase.db"
     sql_db = sql.SQLDatabase(database_args)
+    timestamp = int(time.time())
 
-    model.get_message("admin","newUser")
 
-    sql_db.conn.close()
 
-init()
-#testGet()
-#model.get_message("admin","newUser")
+
+
+#init()
+#test()
