@@ -36,7 +36,7 @@ img {
     max-width: 45%;
 }
 
-html, body, {
+html, body{
     position:fixed;
     top:0;
     bottom:0;

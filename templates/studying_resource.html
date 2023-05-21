@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{%- block content %}
+<p>{{ minimd(description) | safe }}</p>
+<table>
+	<tr>
+		<th>Forum</th>
+		<th>Last update</th>
+	</tr>
+	{% for id, name, description, t_id, t_title, t_mtime in forums %}
+	<tr>
+		<td>
+			<p><a href="{{ url_for('forum', forum_id = id) }}"><b>{{ name }}</b></a></p>
+			<p>{{ minimd(description) | safe }}</p>
+		</td>
+		{% if t_id %}
+		<td>
+			<p><a href="{{ url_for('thread', thread_id = t_id) }}"><b>{{ t_title }}</b></a></p>
+			<p>{{ format_since(t_mtime) }}</p>
+		</td>
+		{% else %}
+		<td>No threads</td>
+		{% endif %}
+	</tr>
+	{%- endfor -%}
+</table>
+{%- endblock %}

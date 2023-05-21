@@ -4,9 +4,11 @@
     maybe some simple program logic
 '''
 
-from bottle import route, get, post, error, request, static_file, redirect, response, Bottle
+from bottle import route, get, post, error, request, static_file, redirect, response, Bottle, template
 import bottle
+import datetime
 import model
+import sqlite3
 
 
 
@@ -267,5 +269,7 @@ def logout():
         del session['name']
     session.save()
     return redirect("home")
+
+
 
 

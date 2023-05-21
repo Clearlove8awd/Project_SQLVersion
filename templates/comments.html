@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% from 'comment.html' import render_comment, render_comment_pre, render_comment_post, reply with context %}
+
+{% block content %}
+
+{{ render_comment_pre(reply_comment, thread_id, comments | length == 0) }}
+
+{{ reply() }}
+
+{% for c in comments %}
+{{ render_comment(c, thread_id) }}
+{% endfor %}
+
+{{ render_comment_post(reply_comment, thread_id) }}
+
+{% endblock %}

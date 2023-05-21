@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{%- from 'moderator.html' import moderate_thread with context %}
+
+{%- macro nav() -%}
+<p style=text-align:center>
+{%- if prev_page is not none %}<a href="./?p={{ prev_page }}">prev</a>{% endif -%}
+{%- if prev_page is not none and next_page is not none %} | {% endif -%}
+{%- if next_page is not none %}<a href="./?p={{ next_page }}">next</a>{% endif -%}
+</p>
+{%- endmacro -%}
+
+{% block content -%}
+<p>{{ minimd(description) | safe }}</p>
+<p><a href="{{ url_for('new_thread', forum_id = forum_id) }}">Create thread</a></p>
+{{- nav() -}}
+<table>
+	<tr>
+		<th>Topic</th>
+		<th>Author</th>
+		<th>Created</th>
+		<th>Updated</th>
+		<th>Comments</th>
+		{%- if user is not none and user.is_moderator() -%}
+		<th>Action</th>
+		{%- endif -%}
+	</tr>
+	{% for id, title, ctime, utime, author_id, author, comment_count, hidden in threads %}
+	<tr>
+		<th>{{ '[hidden] ' if hidden else '' }}<a href="{{ url_for('thread', thread_id = id) }}">{{ title }}</a></th>
+		<td><a href="{{ url_for('user_info', user_id = author_id) }}">{{ author }}</a></td>
+		<td>{{ format_since(ctime) }}</td>
+		<td>{{ format_since(utime) }}</td>
+		<td>{{ comment_count }}</td>
+		<td>
+		{%- if user is not none and user.is_moderator() %}
+		{{- moderate_thread(id, hidden) }}
+		{%- endif -%}
+		</td>
+	</tr>
+	{%- endfor -%}
+</table>
+{{- nav() -}}
+{% endblock %}

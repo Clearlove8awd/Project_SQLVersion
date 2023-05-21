@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<p>Are you sure you want to delete "{{ thread_title }}"?</p>
+<p>
+	<form method="post" action="../delete" style=inline>
+		<input type="submit" value="Yes">
+	</form>
+	<form method="get" action=".." style=inline>
+		<input type="submit" value="No">
+	</form>
+</p>
+{% endblock %}
