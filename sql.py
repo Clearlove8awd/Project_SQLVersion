@@ -162,13 +162,13 @@ class SQLDatabase():
              """.format(int_1=uid, int_2=uid)
         self.execute(sql_cmd)
 
-        #Delete relevant Messages
-        sql_cmd = """
-             DELETE FROM Messages
-             WHERE sender='{sender}' OR receiver='{receiver}'
-             """.format(sender=username, receiver=username)
-        self.execute(sql_cmd)
-        self.commit()
+        # #Delete relevant Messages
+        # sql_cmd = """
+        #      DELETE FROM Messages
+        #      WHERE sender='{sender}' OR receiver='{receiver}'
+        #      """.format(sender=username, receiver=username)
+        # self.execute(sql_cmd)
+        # self.commit()
 
     # if set_muted is 0, user can speak, if it is 1, it is muted
     def mute_user(self, username, set_muted: int):

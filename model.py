@@ -527,3 +527,4 @@ def verify_signature(message, signature, public_key_pem):
         return True
     except rsa.VerificationError:
         return False
+
